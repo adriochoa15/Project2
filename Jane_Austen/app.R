@@ -46,7 +46,7 @@ getTermMatrix <- memoise(function(book) {
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   # Application title
-  titlePanel("Jane Austin Word Cloud"),
+  titlePanel("Jane Austen Word Cloud"),
   
   sidebarLayout(
     # Sidebar with a slider and selection inputs
