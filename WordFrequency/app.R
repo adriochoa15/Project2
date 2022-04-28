@@ -2,7 +2,7 @@ library(shiny)
 library(tidyverse)
 library(scales)
 library(plotly)
-load(url("https://github.com/adriochoa15/Project2.git/Jane_Austen/words.csv"))
+load(url("https://raw.githubusercontent.com/adriochoa15/Project2/main/words.csv"))
 
 
 
