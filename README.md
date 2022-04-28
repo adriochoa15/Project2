@@ -1,2 +1,2 @@
 # Project2
-Interactive Word Cloud
+Interactive Histogram
