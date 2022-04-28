@@ -9,52 +9,47 @@
 
 library(shiny)
 library(tm)
-library(wordcloud)
-library(memoise)
+library(wordcloud2)
+library(readr)
+library(dplyr)
+# loading in the file
+words_csv = read_csv("words.csv", show_col_types = FALSE)
 
-# The list of valid books
-books <<- list("Emma" = "Emma",
-               "Mansfield Park" = "Mansfield",
-               "Northanger Abbey" = "NothAbbey",
-               "Persuasion" = "Persuasion",
-               "Pride and Prejudice" = "PridePrejudice",
-               "Sense and Sensibility" = "SenseSensibility")
+# creating a corpus
+words.corpus = Corpus(VectorSource(words_csv))
 
-# Using "memoise" to automatically cache the results
-getTermMatrix <- memoise(function(book) {
-  
-  if (!(book %in% books))
-    stop("Unknown book")
-  
-  text <- readLines(sprintf("./%s.txt", book), encoding = "UTF-8")
-  
-  myCorpus = Corpus(VectorSource(text))
-  myCorpus = tm_map(myCorpus, content_transformer(tolower))
-  myCorpus = tm_map(myCorpus, removePunctuation)
-  myCorpus = tm_map(myCorpus, removeNumbers)
-  myCorpus = tm_map(myCorpus, removeWords,
-                    c(stopwords("SMART")))
-  
-  myDTM = TermDocumentMatrix(myCorpus,
-                             control = list(minWordLength = 1))
-  
-  m = as.matrix(myDTM)
-  
-  sort(rowSums(m), decreasing = TRUE)
-})
+
+removeHTML = function(text){
+  text = gsub(pattern = '<.+\\">', '', text)
+  text = gsub(pattern = '<.+>', '', text)
+  return(text)
+}
+
+words.corpus = words.corpus %>%
+  tm_map(content_transformer(removeHTML)) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace) %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removeWords, stopwords("english")) %>%
+  tm_map(removeWords, stopwords("SMART")) 
+
+tdm = TermDocumentMatrix(words.corpus) %>%
+  as.matrix()
+words = sort(rowSums(tdm), decreasing = T)
+df = data.frame(word = names(words), freq = words)
+
+wordcloud2(df)
+
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   # Application title
-  titlePanel("Jane Austen Word Cloud"),
+  titlePanel(" Accronym Word Cloud"),
   
   sidebarLayout(
     # Sidebar with a slider and selection inputs
-    sidebarPanel(
-      selectInput("selection", "Choose a book:",
-                  choices = books),
-      actionButton("update", "Change"),
-      hr(),
       sliderInput("freq",
                   "Minimum Frequency:",
                   min = 1,  max = 50, value = 15),
@@ -68,7 +63,6 @@ ui <- fluidPage(
       plotOutput("plot")
     )
   )
-)
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
@@ -89,7 +83,7 @@ server <- function(input, output, session) {
   wordcloud_rep <- repeatable(wordcloud)
   
   output$plot <- renderPlot({
-    v <- terms()
+    df  <- terms()
     wordcloud_rep(names(v), v, scale=c(4,0.5),
                   min.freq = input$freq, max.words=input$max,
                   colors=brewer.pal(8, "Dark2"))
